@@ -6,16 +6,14 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import Swal from 'sweetalert2';
 
-interface Project {
+interface Employee {
   id: string;
-  project_name: string;
-  created_at: string;
-  status: string;
-  image_url: string;
-  client: {
-    id: string;
-    nama_client: string;
-  } | null;
+  full_name: string;
+  position: string;
+  department: string;
+  email_office: string;
+  instagram_url?: string;
+  profile_photo_url: string; // path di storage
 }
 
 const SkeletonRow = () => (
@@ -27,85 +25,59 @@ const SkeletonRow = () => (
       <div className="h-6 bg-gray-300 rounded w-32 animate-pulse"></div>
     </Table.Cell>
     <Table.Cell>
-      <div className="h-6 bg-gray-300 rounded w-20 animate-pulse"></div>
+      <div className="h-6 bg-gray-300 rounded w-32 animate-pulse"></div>
     </Table.Cell>
     <Table.Cell>
-      <div className="h-6 bg-gray-300 rounded w-20 animate-pulse"></div>
-    </Table.Cell>
-    <Table.Cell>
-      <div className="h-6 bg-gray-300 rounded w-10 animate-pulse"></div>
+      <div className="h-6 bg-gray-300 rounded w-32 animate-pulse"></div>
     </Table.Cell>
   </Table.Row>
 );
 
-const Projects = () => {
+const Pegawai = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [pegawai, setPegawai] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch data project
   useEffect(() => {
-    const fetchProjects = async () => {
+    const fetchPegawai = async () => {
       setLoading(true);
-
       const { data, error } = await supabase
-        .from('projects')
+        .from('employees')
         .select(
-          `
-          id,
-          project_name,
-          created_at,
-          status,
-          image_url,
-          clients (
-            id,
-            nama_client
-          )
-        `,
+          'id, full_name, position, department, email_office, instagram_url, profile_photo_url',
         )
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .order('full_name', { ascending: true })
+        .limit(20);
 
       if (error) {
-        console.error('Error fetching projects:', error);
+        console.error('Error fetching employees:', error);
         Swal.fire({
           icon: 'error',
           title: 'Gagal mengambil data',
           text: error.message,
         });
       } else if (data) {
-        const updatedData = data.map((item: any) => {
-          const { data: urlData } = supabase.storage.from('projects').getPublicUrl(item.image_url);
-
+        const updatedData = data.map((item) => {
+          const { data: urlData } = supabase.storage
+            .from('employees')
+            .getPublicUrl(item.profile_photo_url);
           return {
-            id: item.id,
-            project_name: item.project_name,
-            created_at: item.created_at,
-            status: item.status,
-            image_url: urlData?.publicUrl || '',
-            client: item.clients
-              ? {
-                  id: item.clients.id,
-                  nama_client: item.clients.nama_client, // ✅ pakai nama_client
-                }
-              : null,
-          } as Project;
+            ...item,
+            profile_photo_url: urlData?.publicUrl || '',
+          };
         });
-        setProjects(updatedData);
+        setPegawai(updatedData);
       }
-
       setLoading(false);
     };
 
-    fetchProjects();
+    fetchPegawai();
   }, []);
 
-  // Edit Project
   const handleEdit = (id: string) => {
-    navigate(`/edit/project/${id}`);
+    navigate(`/edit/pegawai/${id}`);
   };
 
-  // Delete dengan SweetAlert konfirmasi
   const handleDelete = (id: string, imagePath: string) => {
     Swal.fire({
       title: 'Yakin ingin menghapus?',
@@ -119,25 +91,24 @@ const Projects = () => {
       if (result.isConfirmed) {
         try {
           Swal.fire({
-            title: 'Menghapus project...',
+            title: 'Menghapus data...',
             allowOutsideClick: false,
             didOpen: () => Swal.showLoading(),
           });
 
-          // Hapus file storage
+          // Hapus foto di storage
           const { error: storageError } = await supabase.storage
-            .from('projects')
+            .from('employees')
             .remove([imagePath]);
           if (storageError) throw new Error(storageError.message);
 
-          // Hapus data table
-          const { error: tableError } = await supabase.from('projects').delete().eq('id', id);
+          // Hapus data di tabel
+          const { error: tableError } = await supabase.from('employees').delete().eq('id', id);
           if (tableError) throw new Error(tableError.message);
 
-          // Update state
-          setProjects((prev) => prev.filter((p) => p.id !== id));
+          setPegawai((prev) => prev.filter((p) => p.id !== id));
 
-          Swal.fire('Dihapus!', 'Project berhasil dihapus.', 'success');
+          Swal.fire('Dihapus!', 'Data pegawai berhasil dihapus.', 'success');
         } catch (error: any) {
           Swal.fire('Gagal', error.message || 'Terjadi kesalahan', 'error');
         }
@@ -145,90 +116,67 @@ const Projects = () => {
     });
   };
 
-  // Warna badge status
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'completed':
-        return 'info';
-      case 'cancelled':
-        return 'failure';
-      default:
-        return 'gray';
-    }
-  };
-
   return (
-    <div className="rounded-xl dark:shadow-dark-md shadow-md bg-white dark:bg-darkgray p-6 relative w-full break-words">
-      {/* Header */}
+    <div className="rounded-xl shadow-md bg-white dark:bg-darkgray p-6 relative w-full">
       <div className="flex items-center justify-between mb-4">
-        <h5 className="card-title">Caris Projects</h5>
-        <Button color="primary" onClick={() => navigate('/add/project')}>
-          + Tambah Project
+        <h5 className="card-title">Daftar Pegawai</h5>
+        <Button color="primary" onClick={() => navigate('/add/pegawai')}>
+          + Tambah Pegawai
         </Button>
       </div>
 
-      {/* Table */}
       <div className="mt-3 overflow-x-auto">
         <Table hoverable>
           <Table.Head>
-            <Table.HeadCell className="p-6">Project</Table.HeadCell>
-            <Table.HeadCell>Client</Table.HeadCell>
-            <Table.HeadCell>Date</Table.HeadCell>
-            <Table.HeadCell>Status</Table.HeadCell>
+            <Table.HeadCell className="p-6">Pegawai</Table.HeadCell>
+            <Table.HeadCell>Jabatan</Table.HeadCell>
+            <Table.HeadCell>Departemen</Table.HeadCell>
+            <Table.HeadCell>Email Office</Table.HeadCell>
             <Table.HeadCell></Table.HeadCell>
           </Table.Head>
-          <Table.Body className="divide-y divide-border dark:divide-darkborder">
+          <Table.Body className="divide-y">
             {loading ? (
               Array(5)
                 .fill(null)
                 .map((_, i) => <SkeletonRow key={i} />)
-            ) : projects.length === 0 ? (
+            ) : pegawai.length === 0 ? (
               <Table.Row>
                 <Table.Cell colSpan={5} className="text-center py-6 text-gray-500">
-                  Data project kosong
+                  Data pegawai kosong
                 </Table.Cell>
               </Table.Row>
             ) : (
-              projects.map((item) => (
+              pegawai.map((item) => (
                 <Table.Row key={item.id}>
-                  {/* Project */}
                   <Table.Cell className="whitespace-nowrap ps-6">
                     <div className="flex gap-3 items-center">
                       <img
-                        src={item.image_url}
-                        alt="project"
-                        className="h-[60px] w-[60px] rounded-md object-cover"
+                        src={item.profile_photo_url}
+                        alt="pegawai"
+                        className="h-[50px] w-[50px] rounded-full object-cover"
                       />
-                      <div className="truncate line-clamp-2 max-w-56">
-                        <h6 className="text-sm">{item.project_name}</h6>
+                      <div>
+                        <h6 className="text-sm font-semibold">{item.full_name}</h6>
+                        {item.instagram_url && (
+                          <a
+                            href={item.instagram_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-500"
+                          >
+                            @
+                            {item.instagram_url.replace(
+                              /^https?:\/\/(www\.)?instagram_url\.com\//,
+                              '',
+                            )}
+                          </a>
+                        )}
                       </div>
                     </div>
                   </Table.Cell>
-
-                  {/* Client */}
-                  <Table.Cell>
-                    <span className="text-sm font-medium text-dark">
-                      {item.client ? item.client.nama_client : '-'}
-                    </span>
-                  </Table.Cell>
-
-                  {/* Date */}
-                  <Table.Cell>
-                    <span className="text-sm text-gray-600">
-                      {new Date(item.created_at).toLocaleDateString()}
-                    </span>
-                  </Table.Cell>
-
-                  {/* Status */}
-                  <Table.Cell>
-                    <Badge color={getStatusColor(item.status)}>{item.status}</Badge>
-                  </Table.Cell>
-
-                  {/* Actions */}
+                  <Table.Cell>{item.position}</Table.Cell>
+                  <Table.Cell>{item.department}</Table.Cell>
+                  <Table.Cell>{item.email_office}</Table.Cell>
                   <Table.Cell>
                     <Dropdown
                       label=""
@@ -247,8 +195,8 @@ const Projects = () => {
                         onClick={() =>
                           handleDelete(
                             item.id,
-                            item.image_url.replace(
-                              /^.*\/storage\/v1\/object\/public\/projects\//,
+                            item.profile_photo_url.replace(
+                              /^.*\/storage\/v1\/object\/public\/employees\//,
                               '',
                             ),
                           )
@@ -270,4 +218,4 @@ const Projects = () => {
   );
 };
 
-export { Projects };
+export { Pegawai };

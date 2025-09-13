@@ -2,6 +2,12 @@ import { lazy } from 'react';
 import { Navigate, createBrowserRouter } from 'react-router-dom';
 import Loadable from 'src/layouts/full/shared/loadable/Loadable';
 import PrivateRoute from './PrivateRoute';
+import Pegawais from 'src/views/pegawai/Pegawais';
+import AddPegawais from 'src/views/pegawai/AddPegawais';
+import EditPegawais from 'src/views/pegawai/EditPegawais';
+import Assignment from 'src/views/assignment/Assignment';
+import AddAssignment from 'src/views/assignment/AddAssignment';
+import EditAssignment from 'src/views/assignment/EditAssignment';
 
 // Layouts
 const FullLayout = Loadable(lazy(() => import('../layouts/full/FullLayout')));
@@ -37,6 +43,12 @@ const Router = [
       { path: '/projects', element: <Project /> },
       { path: '/add/project', element: <Addproject /> },
       { path: '/edit/project/:id', element: <Editproject /> },
+      { path: '/pegawais', element: <Pegawais /> },
+      { path: '/add/pegawai', element: <AddPegawais /> },
+      { path: '/edit/pegawai/:id', element: <EditPegawais /> },
+      { path: '/assignments', element: <Assignment /> },
+      { path: '/add/assignment', element: <AddAssignment /> },
+      { path: '/edit/assignment/:id', element: <EditAssignment /> },
       { path: '/blogs', element: <Blog /> },
       { path: '/add/blog', element: <Addblog /> },
       { path: '/edit/blog/:id', element: <Editblog /> },

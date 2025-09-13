@@ -34,6 +34,23 @@ const SidebarContent: MenuItem[] = [
     ],
   },
   {
+    heading: 'PEGAWAI',
+    children: [
+      {
+        name: 'Data Pegawai',
+        icon: 'solar:users-group-rounded-linear',
+        id: uniqueId(),
+        url: '/pegawais',
+      },
+      {
+        name: 'Assignments',
+        icon: 'solar:users-group-rounded-linear',
+        id: uniqueId(),
+        url: '/assignments',
+      },
+    ],
+  },
+  {
     heading: 'UTILITIES',
     children: [
       {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Label, TextInput, Select, Textarea, Button } from 'flowbite-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
@@ -9,6 +9,20 @@ const AddProject = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<any[]>([]);
+
+  // ambil daftar client dari tabel clients
+  useEffect(() => {
+    const fetchClients = async () => {
+      const { data, error } = await supabase.from('clients').select('id, nama_client');
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setClients(data || []);
+    };
+    fetchClients();
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -20,23 +34,20 @@ const AddProject = () => {
   };
 
   const handleSubmit = async () => {
-    // Validasi sederhana sebelum lanjut
     const projectName = (document.getElementById('projectName') as HTMLInputElement)?.value.trim();
-    const client = (document.getElementById('client') as HTMLInputElement)?.value.trim();
+    const clientId = (document.getElementById('clientId') as HTMLSelectElement)?.value;
     const jenisProject = (document.getElementById('jenisProject') as HTMLSelectElement)?.value;
     const jumlahFitur = (document.getElementById('jumlahFitur') as HTMLInputElement)?.value;
-    const createdAt = (document.getElementById('createdAt') as HTMLInputElement)?.value;
     const deadline = (document.getElementById('deadline') as HTMLInputElement)?.value;
-    const totalFitur = (document.getElementById('fitur') as HTMLInputElement)?.value;
+    const totalFitur = (document.getElementById('totalFitur') as HTMLInputElement)?.value;
     const status = (document.getElementById('status') as HTMLSelectElement)?.value;
     const deskripsi = (document.getElementById('deskripsi') as HTMLTextAreaElement)?.value.trim();
 
     if (
       !projectName ||
-      !client ||
+      !clientId ||
       !jenisProject ||
       !jumlahFitur ||
-      !createdAt ||
       !deadline ||
       !totalFitur ||
       !status ||
@@ -69,19 +80,19 @@ const AddProject = () => {
 
       if (imgError) throw imgError;
 
-      // Insert data ke table
+      // Insert ke table projects
       const { error: dbError } = await supabase.from('projects').insert([
         {
           project_name: projectName,
-          client: client,
+          client_id: clientId,
           jenis_project: jenisProject,
           jumlah_fitur: Number(jumlahFitur),
-          created_at: createdAt,
           deadline: deadline,
           total_fitur: Number(totalFitur),
           status: status,
           deskripsi: deskripsi,
           image_url: imgData?.path,
+          // created_at otomatis oleh DB
         },
       ]);
 
@@ -124,8 +135,15 @@ const AddProject = () => {
 
               {/* Client */}
               <div>
-                <Label htmlFor="client" value="Client" className="mb-2 block" />
-                <TextInput id="client" type="text" placeholder="BizUp.id" required />
+                <Label htmlFor="clientId" value="Client" className="mb-2 block" />
+                <Select id="clientId" required>
+                  <option value="">Pilih Client</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nama_client}
+                    </option>
+                  ))}
+                </Select>
               </div>
 
               {/* Jenis Project */}
@@ -141,7 +159,11 @@ const AddProject = () => {
 
               {/* Jumlah Fitur */}
               <div>
-                <Label htmlFor="jumlahFitur" value="Jumlah Fitur" className="mb-2 block" />
+                <Label
+                  htmlFor="jumlahFitur"
+                  value="Jumlah Fitur (yang sudah selesai)"
+                  className="mb-2 block"
+                />
                 <TextInput id="jumlahFitur" type="number" placeholder="Misal: 12" required />
               </div>
 
@@ -177,22 +199,16 @@ const AddProject = () => {
           {/* Kolom Kanan */}
           <div className="lg:col-span-6 col-span-12">
             <div className="flex flex-col gap-4">
-              {/* Tanggal Dibuat */}
-              <div>
-                <Label htmlFor="createdAt" value="Tanggal Dibuat" className="mb-2 block" />
-                <TextInput id="createdAt" type="date" required />
-              </div>
-
               {/* Deadline */}
               <div>
                 <Label htmlFor="deadline" value="Deadline" className="mb-2 block" />
                 <TextInput id="deadline" type="date" required />
               </div>
 
-              {/* Fitur */}
+              {/* Total Fitur */}
               <div>
-                <Label htmlFor="fitur" value="Total Fitur" className="mb-2 block" />
-                <TextInput id="fitur" type="number" placeholder="Misal: 5000" required />
+                <Label htmlFor="totalFitur" value="Total Fitur" className="mb-2 block" />
+                <TextInput id="totalFitur" type="number" placeholder="Misal: 5000" required />
               </div>
 
               {/* Status */}

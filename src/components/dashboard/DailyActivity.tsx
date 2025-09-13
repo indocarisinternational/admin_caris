@@ -1,81 +1,85 @@
-import { Link } from "react-router";
+import { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabaseClient';
 
-const DailyActivity = () => {
+// definisikan tipe Employee
+interface Employee {
+  id: string;
+  full_name: string;
+  job_level: string | null;
+  specialization: string | null;
+  instagram_url: string | null;
+}
 
-  const ActivitySteps = [
-    {
-      Time: "09:46",
-      action: "Payment received from John Doe of $385.90",
-      color: "bg-primary",
-      line: "h-full w-px bg-border",
-    },
-    {
-      Time: "09:46",
-      action: "New sale recorded",
-      id: "#ML-3467",
-      color: "bg-warning",
-      line: "h-full w-px bg-border",
-    },
-    {
-      Time: "09:46",
-      action: "Payment was made of $64.95 to Michael",
-      color: "bg-warning",
-      line: "h-full w-px bg-border",
-    },
-    {
-      Time: "09:46",
-      action: "New sale recorded",
-      id: "#ML-3467",
-      color: "bg-secondary",
-      line: "h-full w-px bg-border",
-    },
-    {
-      Time: "09:46",
-      action: "Project meeting",
-      color: "bg-error",
-      line: "h-full w-px bg-border",
-    },
-    {
-      Time: "09:46",
-      action: "Payment received from John Doe of $385.90",
-      color: "bg-primary"
-    },
+const EmployeeList = () => {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    
-  ];
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, full_name, job_level, specialization, instagram_url');
+
+      if (error) {
+        console.error('Error fetching employees:', error.message);
+      } else {
+        setEmployees(data as Employee[]);
+      }
+      setLoading(false);
+    };
+
+    fetchEmployees();
+  }, []);
+
+  if (loading) {
+    return <p className="text-center py-4">Loading...</p>;
+  }
+
   return (
-    <>
-      <div className="rounded-xl dark:shadow-dark-md shadow-md bg-white dark:bg-darkgray p-6 relative w-full break-words">
-        <h5 className="card-title mb-6">Daily activities</h5>
+    <div className="rounded-xl dark:shadow-dark-md shadow-md bg-white dark:bg-darkgray p-6 relative w-full break-words">
+      <h5 className="card-title mb-6">Daftar Pegawai</h5>
 
-        <div className="flex flex-col mt-2">
-          <ul>
-            {ActivitySteps.map((item, index) => {
-              return (
-                <li key={index}>
-                  <div className="flex gap-4 min-h-16">
-                    <div className="">
-                      <p>{item.Time}</p>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className={`rounded-full ${item.color} p-1.5 w-fit`}></div>
-                      <div className={`${item.line}`}></div>
-                    </div>
-                    <div className="">
-                      <p className="text-dark text-start">{item.action}</p>
-                      <Link to="#" className="text-blue-700">
-                        {item.id}
-                      </Link>
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
-      </div>
-    </>
+      {employees.length === 0 ? (
+        <p className="text-gray-500">Belum ada data pegawai</p>
+      ) : (
+        <ul className="divide-y divide-gray-200">
+          {employees.map((emp) => (
+            <li key={emp.id} className="py-4 flex items-start gap-3">
+              {/* Bullet custom */}
+              <span className="w-2 h-2 rounded-full bg-primary mt-2"></span>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-dark">{emp.full_name}</p>
+                  {emp.job_level && (
+                    <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">
+                      {emp.job_level}
+                    </span>
+                  )}
+                  {emp.specialization && (
+                    <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded">
+                      {emp.specialization}
+                    </span>
+                  )}
+                </div>
+                {emp.instagram_url && (
+                  <a
+                    href={emp.instagram_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 text-sm"
+                  >
+                    {emp.instagram_url}
+                  </a>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 
-export default DailyActivity;
+export default EmployeeList;

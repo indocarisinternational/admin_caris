@@ -1,108 +1,103 @@
+import { useEffect, useState } from 'react';
+import { Badge } from 'flowbite-react';
+import { TbPoint } from 'react-icons/tb';
+import { Icon } from '@iconify/react';
+import { Link } from 'react-router';
+import { supabase } from '../../lib/supabaseClient';
+import Swal from 'sweetalert2';
 
-
-import user2 from "/src/assets/images/profile/user-2.jpg";
-import user3 from "/src/assets/images/profile/user-3.jpg";
-import img1 from "/src/assets/images/blog/blog-img1.jpg";
-import img2 from "/src/assets/images/blog/blog-img2.jpg";
-import img3 from "/src/assets/images/blog/blog-img3.jpg";
-import { Badge } from "flowbite-react";
-import { TbPoint }   from "react-icons/tb";
-import { Icon } from "@iconify/react";
-import { Link } from "react-router";
-
-
-const BlogCardsData = [
-  {
-    avatar: user2,
-    coveravatar: img1,
-    read: "2 min Read",
-    title: "As yen tumbles, gadget-loving Japan goes for secondhand iPhones",
-    category: "Social",
-    name: "Georgeanna Ramero",
-    view: "9,125",
-    comments: "3",
-    time: "Mon, Dec 19",
-    url:''
-  },
-  {
-    avatar: user2,
-    coveravatar: img2,
-    read: "2 min Read",
-    title:
-      "Intel loses bid to revive antitrust case against patent foe Fortress",
-    category: "Gadget",
-    name: "Georgeanna Ramero",
-    view: "4,150",
-    comments: "38",
-    time: "Sun, Dec 18",
-    url:''
-  },
-  {
-    avatar: user3,
-    coveravatar: img3,
-    read: "2 min Read",
-    title: "COVID outbreak deepens as more lockdowns loom in China",
-    category: "Health",
-    name: "Georgeanna Ramero",
-    view: "9,480",
-    comments: "12",
-    time: "Sat, Dec 17",
-    url:''
-  },
-];
+interface Blog {
+  id: string;
+  judul: string;
+  created_at: string;
+  isi: string;
+  banner_url: string;
+}
 
 const BlogCards = () => {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      const { data, error } = await supabase
+        .from('blogs')
+        .select('id, judul, created_at, isi, banner_url')
+        .order('created_at', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        Swal.fire('Error', error.message, 'error');
+        setLoading(false);
+        return;
+      }
+
+      // mapping supaya banner_url jadi public URL
+      const mapped = data.map((item: any) => {
+        const { data: urlData } = supabase.storage.from('blogs').getPublicUrl(item.banner_url);
+
+        return {
+          ...item,
+          banner_url: urlData?.publicUrl || '/placeholder.png',
+        };
+      });
+
+      setBlogs(mapped);
+      setLoading(false);
+    };
+
+    fetchBlogs();
+  }, []);
+
   return (
-    <>
-      <div className="grid grid-cols-12 gap-30">
-        {BlogCardsData.map((item, i) => (
-          <div className="lg:col-span-4 col-span-12" key={i}>
-            <Link to={item.url} className="group">
-            <div className="rounded-xl dark:shadow-dark-md shadow-md bg-white dark:bg-darkgray p-0 relative w-full break-words overflow-hidden">
+    <div className="grid grid-cols-12 gap-6">
+      {loading ? (
+        <p className="col-span-12 text-center">Loading...</p>
+      ) : blogs.length === 0 ? (
+        <p className="col-span-12 text-center">Belum ada blog</p>
+      ) : (
+        blogs.map((item) => (
+          <div className="lg:col-span-4 col-span-12" key={item.id}>
+            <Link to={`/blog/${item.id}`} className="group">
+              <div className="rounded-xl dark:shadow-dark-md shadow-md bg-white dark:bg-darkgray overflow-hidden">
+                {/* Banner */}
                 <div className="relative">
-                  <img src={item.coveravatar} alt="matdash" />
+                  <img
+                    src={item.banner_url}
+                    alt={item.judul}
+                    className="w-full h-[200px] object-cover"
+                  />
                   <Badge
-                    color={"muted"}
-                    className="absolute bottom-5 end-5 font-semibold rounded-sm bg-muted"
+                    color={'muted'}
+                    className="absolute bottom-3 right-3 font-semibold rounded-sm bg-muted"
                   >
-                    {item.read}
+                    {new Date(item.created_at).toDateString()}
                   </Badge>
                 </div>
 
+                {/* Content */}
                 <div className="px-6 pb-6">
-                  <img
-                    src={item.avatar}
-                    className="h-10 w-10 rounded-full -mt-7 relative z-1"
-                    alt="user"
-                  />
-                  <Badge color={"muted"} className="mt-6">
-                    {item.category}
-                  </Badge>
-                  <h5 className="text-lg my-6 group-hover:text-primary line-clamp-2">{item.title}</h5>
-                  <div className="flex">
-                    <div className="flex gap-2 me-6 items-center">
-                    <Icon icon="solar:eye-outline" height="18" className="text-dark" />
-                      <span className="text-sm text-darklink">{item.view}</span>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                    <Icon icon="solar:chat-line-outline" height="18" className="text-dark" />
-                      <span className="text-sm text-darklink">{item.view}</span>
-                    </div>
-                    <div className="flex gap-1 items-center ms-auto">
-                      <TbPoint
-                        size={15}
-                        className="text-dark"
-                      />{" "}
-                      <span className="text-sm text-darklink">{item.time}</span>
-                    </div>
+                  <h5 className="text-lg my-4 group-hover:text-primary line-clamp-2">
+                    {item.judul}
+                  </h5>
+                  <p className="text-sm text-gray-600 line-clamp-3">{item.isi}</p>
+
+                  <div className="flex gap-1 items-center mt-4 text-sm text-darklink">
+                    <TbPoint size={15} className="text-dark" />
+                    {new Date(item.created_at).toLocaleDateString('id-ID', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
                   </div>
                 </div>
               </div>
             </Link>
           </div>
-        ))}
-      </div>
-    </>
+        ))
+      )}
+    </div>
   );
 };
 

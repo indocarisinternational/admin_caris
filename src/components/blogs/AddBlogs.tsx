@@ -9,8 +9,6 @@ const AddBlog = () => {
 
   const [formData, setFormData] = useState({
     judul: '',
-    createdAt: '',
-    updatedAt: '',
     isiBlog: '',
   });
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -32,7 +30,7 @@ const AddBlog = () => {
 
   const handleSubmit = async () => {
     try {
-      if (!formData.judul || !formData.createdAt || !formData.updatedAt || !formData.isiBlog) {
+      if (!formData.judul || !formData.isiBlog) {
         Swal.fire({
           icon: 'warning',
           title: 'Lengkapi semua data',
@@ -53,7 +51,7 @@ const AddBlog = () => {
       // Upload banner ke supabase storage
       const filePath = `banners/${Date.now()}_${bannerFile.name}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('blogs') // pastikan kamu sudah buat bucket 'blogs' di supabase storage
+        .from('blogs') // pastikan sudah ada bucket 'blogs'
         .upload(filePath, bannerFile);
 
       if (uploadError) throw uploadError;
@@ -62,8 +60,6 @@ const AddBlog = () => {
       const { error: insertError } = await supabase.from('blogs').insert([
         {
           judul: formData.judul,
-          created_at: formData.createdAt,
-          updated_at: formData.updatedAt,
           isi: formData.isiBlog,
           banner_url: uploadData?.path,
         },
@@ -105,30 +101,6 @@ const AddBlog = () => {
             placeholder="Masukkan judul blog..."
             required
             value={formData.judul}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Created At */}
-        <div>
-          <Label htmlFor="createdAt" value="Created At" className="mb-2 block" />
-          <TextInput
-            id="createdAt"
-            type="date"
-            required
-            value={formData.createdAt}
-            onChange={handleChange}
-          />
-        </div>
-
-        {/* Updated At */}
-        <div>
-          <Label htmlFor="updatedAt" value="Updated At" className="mb-2 block" />
-          <TextInput
-            id="updatedAt"
-            type="date"
-            required
-            value={formData.updatedAt}
             onChange={handleChange}
           />
         </div>
