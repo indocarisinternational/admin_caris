@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Label, TextInput, Select, Textarea, Button } from 'flowbite-react';
+import { Label, TextInput, Textarea, Button } from 'flowbite-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import Swal from 'sweetalert2';

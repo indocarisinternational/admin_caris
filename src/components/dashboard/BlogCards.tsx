@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Badge } from 'flowbite-react';
 import { TbPoint } from 'react-icons/tb';
-import { Icon } from '@iconify/react';
 import { Link } from 'react-router';
 import { supabase } from '../../lib/supabaseClient';
 import Swal from 'sweetalert2';
